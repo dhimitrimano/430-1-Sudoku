@@ -1,4 +1,4 @@
-// Sudoku puzzle verifier and solver
+// Sudoku puzzle verifier
 
 #include <assert.h>
 #include <errno.h>
@@ -34,8 +34,6 @@ bool solved = false; // to stop the ongoing threads in the solve function
 void *rowCheck(void *); // checks in grid[here][const]
 void *colCheck(void *); // checks in grid[const][here]
 void *sqrCheck(void *); // checks a square in grid, each square having sqrt(psize) side length
-
-void *solver(void *); // solves the puzzle for extra credit
 
 // takes puzzle size and grid[][] representing sudoku puzzle
 // and tow booleans to be assigned: complete and valid.
@@ -101,41 +99,6 @@ void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
     }
   }
   pthread_num = 0;
-  if (*valid && !*complete) {
-    colNum = 1;
-    rowNum = 1;
-    while (grid[rowNum][colNum] != 0) {
-      if (rowNum > psize) {
-        colNum += 1;
-        rowNum = 1;
-      } else {
-        rowNum += 1;
-      }
-    }
-    // for (rowNum = 1; rowNum <= psize && grid[rowNum][colNum] != 0; rowNum += 1) {
-    //   for (colNum = 1; colNum <= psize && grid[rowNum][colNum] != 0; colNum += 1) {
-    //     if (grid[rowNum][colNum] == 0) {
-    //       break;
-    //     }
-    //   }
-    //   if (grid[rowNum][colNum] == 0) {
-    //     break;
-    //   }
-    //   fprintf(stderr,"\n");
-    // }
-    pthread_attr_init(&attribs[0]);
-    data[0].col = colNum;
-    data[0].row = rowNum;
-    data[0].table = grid;
-    data[0].size = psize;
-    data[0].comp = true;
-    data[0].val = false;
-    pthread_create(&pthreads[0], &attribs[0], solver, &data[0]);
-    pthread_join(pthreads[0], NULL);
-    if (data[0].val) {
-      *valid = true;
-    }
-  }
   free(data);
   free(pthreads);
   free(attribs);
@@ -296,125 +259,6 @@ void *sqrCheck(void *arg) {
       break;
     }
   }
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-  return (void *)ret;
-  #pragma GCC diagnostic pop
-}
-
-// solves the grid using recursion, how else
-void *solver(void *arg) {
-  params *p = (params *)arg;
-  bool ret = false;
-  int proot = (int) sqrt(p->size);
-  pthread_t *outerPthreads = (pthread_t *)malloc(6 * sizeof(pthread_t));
-  pthread_attr_t *outerAttribs = (pthread_attr_t *)malloc(12 * sizeof(pthread_attr_t));
-  params *outerData = (params *)malloc(6 * sizeof(params));
-  pthread_attr_init(&outerAttribs[0]);
-  outerData[0].col = p->col;
-  outerData[0].row = p->row;
-  outerData[0].table = p->table;
-  outerData[0].size = p->size;
-  outerData[0].comp = true;
-  outerData[0].val = true;
-  pthread_create(&outerPthreads[0], &outerAttribs[0], rowCheck, &outerData[0]);
-  pthread_attr_init(&outerAttribs[1]);
-  outerData[1].col = p->col;
-  outerData[1].row = p->row;
-  outerData[1].table = p->table;
-  outerData[1].size = p->size;
-  outerData[1].comp = true;
-  outerData[1].val = true;
-  pthread_create(&outerPthreads[1], &outerAttribs[1], colCheck, &outerData[1]);
-  pthread_attr_init(&outerAttribs[2]);
-  outerData[2].col = ((p->col - 1) / proot) * proot;
-  outerData[2].row = ((p->row - 1) / proot) * proot;
-  outerData[2].table = p->table;
-  outerData[2].size = p->size;
-  outerData[2].comp = true;
-  outerData[2].val = true;
-  pthread_create(&outerPthreads[2], &outerAttribs[2], sqrCheck, &outerData[2]);
-  pthread_join(outerPthreads[2], NULL);
-  pthread_join(outerPthreads[0], NULL);
-  pthread_join(outerPthreads[1], NULL);
-  printf("%d %d %d look at that, all fours. terrific. it doesn't make sense, but what does?\n", p->row, p->col, p->table[p->row][p->col]);
-  if (outerData[0].val && outerData[1].val && outerData[2].val) {
-    p->val = true;
-    int rowNum = 1;
-    int colNum = 1;
-    int pastRow;
-    int pastCol;
-    pastRow = p->size - 1;
-    pastCol = p->size - 1;
-    pthread_t *innerPthreads = (pthread_t *)malloc(p->size * 4 * sizeof(pthread_t));
-    pthread_attr_t *innerAttribs = (pthread_attr_t *)malloc(p->size * 4 * sizeof(pthread_attr_t));
-    params *data = (params *)malloc(p->size * 4 * sizeof(params));
-    if (!solved) {
-      while (p->table[rowNum][colNum] != 0) {
-        if (colNum > p->size) {
-          rowNum = 0;
-          colNum = 1;
-        }
-        if (rowNum > p->size) {
-          colNum += 1;
-          rowNum = 1;
-        } else {
-          rowNum += 1;
-        }
-        if (rowNum == pastRow && colNum == pastCol) {
-          p->val = true;
-          solved = true;
-          ret = true;
-          free(data);
-          free(innerPthreads);
-          free(innerAttribs);
-          #pragma GCC diagnostic push
-          #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-          return (void *)ret;
-          #pragma GCC diagnostic pop
-        }
-      }
-      if (p->table[rowNum][colNum] == 0) {
-        int num[p->size];
-        for (int i = 0; i < p->size; i++) {
-          num[i] = i + 1;
-        }
-        for (int i = 0; i < p->size; i += 1) {
-          pthread_attr_init(&innerAttribs[i]);
-          data[i].col = colNum;
-          data[i].row = rowNum;
-          data[i].size = p->size;
-          data[i].comp = true;
-          data[i].val = false;
-          data[i].table = p->table;
-          data[i].table[rowNum][colNum] = num[i];
-          pthread_create(&innerPthreads[i], &innerAttribs[i], solver, &data[i]);
-        }
-        for (int i = 0; i < p->size; i += 1) {
-          pthread_join(innerPthreads[i], NULL);
-          if (data[i].val) {
-            for (i += 1; i < p->size; i++) {
-              pthread_cancel(innerPthreads[i]);
-            }
-            p->val = true;
-            solved = true;
-            break;
-          } else if (solved) {
-            for (i += 1; i < p->size; i++) {
-              pthread_cancel(innerPthreads[i]);
-            }
-            free(data);
-            free(innerPthreads);
-            free(innerAttribs);
-            break;
-          }
-        }
-      }
-    }
-  }
-  free(outerData);
-  free(outerPthreads);
-  free(outerAttribs);
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
   return (void *)ret;
