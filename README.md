@@ -2,7 +2,9 @@
 
 A Sudoku validator program using multiple POSIX threads to speed up the process.
 
-It validates sudoku puzzles by creating threads that check the following criteria:
+### Description
+
+The program validates sudoku puzzles by creating threads that check the following criteria:
 
 - A thread to check that each column contains the digits 1 through 9
 - A thread to check that each row contains the digits 1 through 9
