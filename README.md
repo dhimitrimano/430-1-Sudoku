@@ -8,7 +8,7 @@ The program validates sudoku puzzles by creating threads that check the followin
 
 - A thread to check that each column contains the digits 1 through 9
 - A thread to check that each row contains the digits 1 through 9
-- Nine threads to check that each of the 3 × 3 subgrids contains the digits 1 through 9
+- Nine threads to check that each of the 3 x 3 subgrids contains the digits 1 through 9
 
 ---
 
